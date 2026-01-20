@@ -16,10 +16,10 @@
 <div class="main">
   <div class="card">
     <h2>Business Signup</h2>
-    <input id="name" placeholder="Full Name">
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-    <input id="aadhaar" placeholder="Aadhaar Number">
+    <input id="name" placeholder="Full Name" minlength="3" required>
+    <input id="email" placeholder="Email" type="email" required>
+    <input id="password" type="password" placeholder="Password" minlength="8" required>
+    <input id="aadhaar" placeholder="Aadhaar Number" maxlength="12" pattern="\d{12}" required>
     <button onclick="signup('business')">Create Account</button>
   </div>
 </div>

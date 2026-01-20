@@ -46,6 +46,10 @@ function isValidAadhaar(aadhaar) {
   return /^\d{12}$/.test(aadhaar);
 }
 
+function isValidName(name) {
+  return name.length >= 3 && /^[a-zA-Z\s]+$/.test(name.trim());
+}
+
 /* ===============================
    SIGNUP (COMMON)
 ================================ */
@@ -58,6 +62,11 @@ function signup(role) {
 
   if (!name || !email || !password) {
     alert("All fields are required");
+    return;
+  }
+
+  if (!isValidName(name)) {
+    alert("Name must be at least 3 characters long and contain only letters and spaces");
     return;
   }
 
@@ -82,9 +91,10 @@ function signup(role) {
 
   const user = { name, email, password, role };
 
+  // Aadhaar validation only for business
   if (role === "business") {
     const aadhaar = aadhaarInput.value.trim();
-
+    
     if (!aadhaar) {
       alert("Aadhaar number is required for business accounts");
       return;
