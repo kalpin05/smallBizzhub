@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Business Dashboard</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+<script src="../js/auth.js"></script>
+<script>
+  protectPage("business");
+</script>
+
+<div class="sidebar">
+  <h3 id="welcomeMessage">Welcome back!</h3>
+  <a class="active">Dashboard</a>
+  <a>My Profile</a>
+  <a>Products</a>
+  <a>Orders</a>
+  <a href="#" onclick="logout()">Logout</a>
+</div>
+
+<div class="main">
+  <h1 id="dashboardTitle">Welcome back, Business Owner</h1>
+
+  <div class="stats">
+    <div class="stat">Total Orders<br><strong>1,250</strong></div>
+    <div class="stat">Revenue<br><strong>$24,580</strong></div>
+    <div class="stat">Active Products<br><strong>56</strong></div>
+    <div class="stat">Messages<br><strong>18</strong></div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const userName = getCurrentUserDisplayName();
+    document.getElementById('welcomeMessage').textContent = 'Welcome back, ' + userName + '!';
+    document.getElementById('dashboardTitle').textContent = 'Welcome back, ' + userName;
+  });
+</script>
+</body>
+</html>

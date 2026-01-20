@@ -1,0 +1,138 @@
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  background: rgba(0,0,0,0.4);
+  padding: 30px;
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(93, 169, 255, 0.2);
+}
+
+.sidebar h3 {
+  color: #5da9ff;
+  margin-bottom: 30px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.sidebar a {
+  display: block;
+  margin-top: 20px;
+  opacity: 0.7;
+  padding: 10px 15px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  color: #ffffff;
+}
+
+.sidebar a:hover {
+  opacity: 1;
+  background: rgba(93, 169, 255, 0.1);
+  transform: translateX(5px);
+}
+
+.sidebar .active {
+  opacity: 1;
+  color: #5da9ff;
+  background: rgba(93, 169, 255, 0.15);
+  border-left: 3px solid #5da9ff;
+}
+
+.main {
+  margin-left: 280px;
+  padding: 50px;
+}
+
+.main h1 {
+  font-size: 32px;
+  margin-bottom: 20px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 25px;
+  margin-top: 40px;
+}
+
+.stat {
+  padding: 25px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(93, 169, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.stat:hover {
+  transform: translateY(-5px);
+  background: rgba(255,255,255,0.12);
+  box-shadow: 0 10px 30px rgba(93, 169, 255, 0.2);
+}
+
+.stat strong {
+  color: #5da9ff;
+  font-size: 24px;
+  display: block;
+  margin-top: 8px;
+}
+
+.search {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  max-width: 600px;
+}
+
+.search input {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(93, 169, 255, 0.3);
+  background: rgba(255,255,255,0.08);
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.search input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+.search button {
+  padding: 12px 25px;
+  background: linear-gradient(135deg,#2e6bff,#5da9ff);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.search button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(93, 169, 255, 0.4);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.business-card {
+  padding: 20px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(93, 169, 255, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.business-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255,255,255,0.12);
+  box-shadow: 0 10px 30px rgba(93, 169, 255, 0.2);
+}

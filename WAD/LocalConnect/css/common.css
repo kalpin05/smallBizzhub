@@ -1,0 +1,86 @@
+/* ================= HEADER ================= */
+
+.site-header {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px;
+  background: linear-gradient(to right, #0b0f1a, #151a2f);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.site-logo {
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: #6ea8ff;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.site-nav a,
+.site-nav button {
+  font-size: 14px;
+  color: #cfd9ff;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.site-nav .auth-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ================= FOOTER ================= */
+
+.site-footer {
+  background: #0b0f1a;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 50px 60px 30px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 40px;
+}
+
+.footer-grid h4 {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.footer-grid a {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 12px;
+  opacity: 0.4;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 768px) {
+  .site-header {
+    padding: 0 20px;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
