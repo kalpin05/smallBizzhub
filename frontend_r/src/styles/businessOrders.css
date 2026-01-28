@@ -1,0 +1,232 @@
+/* RESET */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+
+/* BODY */
+
+body {
+  background: linear-gradient(120deg, #020617, #0f172a);
+  color: white;
+}
+
+
+/* CONTAINER */
+
+.borders-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* HEADER */
+
+.borders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 20px 40px;
+
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
+}
+
+.borders-header h2 {
+  color: #5da9ff;
+}
+
+.borders-header nav {
+  display: flex;
+  gap: 25px;
+}
+
+.borders-header nav span {
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.borders-header nav span:hover {
+  opacity: 1;
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid #5da9ff;
+  color: #5da9ff;
+
+  padding: 6px 14px;
+  border-radius: 6px;
+
+  cursor: pointer;
+}
+
+
+/* LAYOUT */
+
+.borders-layout {
+  flex: 1;
+  display: flex;
+}
+
+
+/* SIDEBAR */
+
+.borders-sidebar {
+  width: 240px;
+  background: rgba(0,0,0,0.4);
+
+  padding: 30px 20px;
+}
+
+.borders-sidebar button {
+  width: 100%;
+
+  background: none;
+  border: none;
+
+  color: white;
+  opacity: 0.7;
+
+  text-align: left;
+
+  padding: 12px;
+
+  cursor: pointer;
+}
+
+.borders-sidebar button:hover,
+.borders-sidebar .active {
+  opacity: 1;
+  color: #5da9ff;
+}
+
+
+/* MAIN */
+
+.borders-main {
+  flex: 1;
+  padding: 40px;
+}
+
+.borders-main h1 {
+  font-size: 30px;
+  margin-bottom: 25px;
+}
+
+
+/* CARD */
+
+.borders-card {
+  background: rgba(255,255,255,0.06);
+
+  border-radius: 16px;
+
+  padding: 25px;
+
+  border: 1px solid rgba(255,255,255,0.1);
+
+  max-width: 950px;
+}
+
+
+/* TABLE */
+
+.borders-table {
+  width: 100%;
+}
+
+
+/* HEAD + ROW */
+
+.borders-head,
+.borders-row {
+
+  display: grid;
+
+  grid-template-columns: 1fr 1.4fr 1.2fr 1.2fr 1fr 1fr 0.8fr;
+
+  align-items: center;
+
+  padding: 14px 12px;
+}
+
+
+.borders-head {
+  font-weight: bold;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+
+.borders-row {
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+
+/* STATUS */
+
+.bstatus {
+  padding: 6px 12px;
+
+  border-radius: 15px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  text-transform: capitalize;
+}
+
+
+.completed {
+  background: #22c55e;
+  color: black;
+}
+
+.pending {
+  background: #eab308;
+  color: black;
+}
+
+.shipped {
+  background: #3b82f6;
+}
+
+.cancelled {
+  background: #ef4444;
+}
+
+
+/* VIEW BUTTON */
+
+.view-btn {
+  background: #5da9ff;
+
+  border: none;
+
+  padding: 6px 12px;
+
+  border-radius: 6px;
+
+  cursor: pointer;
+}
+
+
+/* FOOTER */
+
+.borders-footer {
+
+  padding: 15px;
+
+  text-align: center;
+
+  background: rgba(0,0,0,0.4);
+
+  color: #b0b0cc;
+}
