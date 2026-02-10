@@ -12,7 +12,7 @@ import ClientSignup from "./pages/ClientSignup";
 import BusinessSignup from "./pages/BusinessSignup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ClientDiscover from "./pages/ClientDiscover";
-import BusinessProfile from "./pages/BussinessProfile";
+import BusinessProfile from "./pages/BusinessProfile";
 import ClientProfile from "./pages/ClientProfile";
 import BusinessAddProduct from "./pages/BusinessAddProduct";
 import BusinessAnalytics from "./pages/BusinessAnalytics";
@@ -42,16 +42,11 @@ function App() {
         <Route path="/client-discover" element={<ClientDiscover />} />
         <Route path="/business-profile" element={<BusinessProfile />} />
         <Route path="/client-orders" element={<ClientOrders />} />
-        <Route path="orders" element={<BusinessOrders />} />
-        <Route path="BusinessAnalytics" element={<BusinessAnalytics />} />
-
-        {/* Business Dashboard (Nested) */}
-        <Route path="/business-dashboard" element={<BusinessDashboard />}>
-          <Route index element={null} />
-          <Route path="profile" element={<BusinessProfile />} />
-          <Route path="products" element={<BusinessProducts />} />
-          <Route path="settings" element={<BusinessSettings />} />
-        </Route>
+        <Route path="/business-orders" element={<BusinessOrders />} />
+        <Route path="/business-analytics" element={<BusinessAnalytics />} />
+        <Route path="/business-products" element={<BusinessProducts />} />
+        <Route path="/business-settings" element={<BusinessSettings />} />
+        <Route path="/business-dashboard" element={<BusinessDashboard />} />
       </Routes>
 
       <Footer />
