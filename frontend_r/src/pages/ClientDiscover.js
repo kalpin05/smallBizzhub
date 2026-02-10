@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "../styles/clientDiscover.css";
 import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+
 function ClientDiscover() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState("Discover");
@@ -35,40 +37,8 @@ function ClientDiscover() {
   return (
     <div className="client-container">
 
-      {/* SIDEBAR */}
-      <aside className="client-sidebar">
-
-        <div className="profile-box">
-          <img src="https://i.pravatar.cc/60" alt="profile" />
-          <p>
-            Hello,<br />
-            <strong>Jessica!</strong>
-          </p>
-        </div>
-
-        <nav>
-          <a
-            className={activeMenu === "Discover" ? "active" : ""}
-            onClick={() => setActiveMenu("Discover")}
-          >
-            Discover
-          </a>
-
-          <a
-            className={activeMenu === "My Orders" ? "active" : ""}
-            onClick={() => navigate("/client-orders")}
-          >
-            My Orders
-          </a>
-
-          <a
-            className={activeMenu === "My Profile" ? "active" : ""}
-            onClick={() => navigate("/client-profile")}
-          >
-            My Profile
-          </a>
-        </nav>
-      </aside>
+      {/* SIDEBAR (XML-BASED) */}
+      <Sidebar userType="client" />
 
       {/* MAIN CONTENT */}
       <main className="client-main">

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<navigation>
+  <!-- Business User Navigation -->
+  <business>
+    <menuItem id="dashboard" label="Dashboard" path="/business-dashboard" icon="LayoutDashboard" />
+    <menuItem id="profile" label="My Profile" path="/business-profile" icon="User" />
+    <menuItem id="products" label="Products" path="/business-add-product" icon="Package" />
+    <menuItem id="orders" label="Orders" path="/orders" icon="ShoppingCart" />
+    <menuItem id="analytics" label="Analytics" path="/BusinessAnalytics" icon="BarChart3" />
+    <menuItem id="settings" label="Settings" path="/business-dashboard/settings" icon="Settings" />
+  </business>
+  
+  <!-- Client User Navigation -->
+  <client>
+    <menuItem id="discover" label="Discover" path="/client-discover" icon="Search" />
+    <menuItem id="orders" label="My Orders" path="/client-orders" icon="ShoppingCart" />
+    <menuItem id="profile" label="My Profile" path="/client-profile" icon="User" />
+  </client>
+</navigation>

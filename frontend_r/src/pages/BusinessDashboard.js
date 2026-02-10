@@ -1,30 +1,15 @@
-import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { Outlet } from "react-router-dom";
 import {
-  LayoutDashboard,
-  User,
-  Package,
-  ShoppingCart,
-  BarChart3,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
   DollarSign,
   MessageCircle,
-  Bell
+  ShoppingCart,
+  Package
 } from "lucide-react";
 
+import Sidebar from "../components/Sidebar";
 import "../styles/dashboard.css";
 
 function BusinessDashboard() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const [collapsed, setCollapsed] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(230);
-
-  const isActive = (path) => location.pathname.includes(path);
-
   /* ================= STATIC DATA ================= */
 
   const stats = [
@@ -106,88 +91,8 @@ function BusinessDashboard() {
   return (
     <div className="dashboard-container">
 
-      {/* ================= SIDEBAR ================= */}
-      <aside
-        className={`sidebar ${collapsed ? "collapsed" : ""}`}
-        style={{ width: collapsed ? 70 : sidebarWidth }}
-      >
-        {/* PROFILE */}
-        <div className="sidebar-profile">
-          <img src="https://i.pravatar.cc/100" alt="profile" />
-          {!collapsed && (
-            <>
-              <p>Hello,</p>
-              <h3>"card signup-card.name"</h3>
-            </>
-          )}
-        </div>
-
-        {/* NAV */}
-        <nav>
-          <SidebarItem
-            icon={<LayoutDashboard />}
-            label="Dashboard"
-            active={isActive("/business-dashboard")}
-            collapsed={collapsed}
-            onClick={() => navigate("/business-dashboard")}
-          />
-          <SidebarItem
-            icon={<User />}
-            label="My Profile"
-            active={isActive("/profile")}
-            collapsed={collapsed}
-            onClick={() => navigate("/business-profile")}
-          />
-          <SidebarItem
-            icon={<Package />}
-            label="Products"
-            active={isActive("/products")}
-            collapsed={collapsed}
-            onClick={() => navigate("/business-add-product")}
-          />
-          <SidebarItem
-            icon={<ShoppingCart />}
-            label="Orders"
-            active={isActive("/orders")}
-            collapsed={collapsed}
-            onClick={() => navigate("/orders")}
-          />
-          <SidebarItem
-            icon={<BarChart3 />}
-            label="Analytics"
-            active={isActive("/analytics")}
-            collapsed={collapsed}
-            onClick={() => navigate("/BusinessAnalytics")}
-          />
-          <SidebarItem
-            icon={<Settings />}
-            label="Settings"
-            active={isActive("/settings")}
-            collapsed={collapsed}
-            onClick={() => navigate("/business-dashboard/settings")}
-          />
-        </nav>
-
-        {/* RESIZE */}
-        {!collapsed && (
-          <input
-            type="range"
-            min="200"
-            max="300"
-            value={sidebarWidth}
-            className="sidebar-resizer"
-            onChange={(e) => setSidebarWidth(e.target.value)}
-          />
-        )}
-
-        {/* TOGGLE */}
-        <button
-          className="collapse-btn"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? <ChevronRight /> : <ChevronLeft />}
-        </button>
-      </aside>
+      {/* ================= SIDEBAR (XML-BASED) ================= */}
+      <Sidebar userType="business" collapsible={true} resizable={true} />
 
       {/* ================= MAIN ================= */}
       <main className="dashboard-main">
@@ -261,18 +166,5 @@ function BusinessDashboard() {
   );
 }
 
-/* ================= SIDEBAR ITEM ================= */
-
-function SidebarItem({ icon, label, active, collapsed, onClick }) {
-  return (
-    <div
-      className={`sidebar-item ${active ? "active" : ""}`}
-      onClick={onClick}
-    >
-      <span className="icon">{icon}</span>
-      {!collapsed && <span className="label">{label}</span>}
-    </div>
-  );
-}
 
 export default BusinessDashboard;

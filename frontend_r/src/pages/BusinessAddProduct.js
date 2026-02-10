@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "../styles/businessAddProduct.css";
 import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+
 function BusinessAddProduct() {
 
   const navigate = useNavigate();
@@ -66,17 +68,8 @@ function BusinessAddProduct() {
       <div className="add-layout">
 
 
-        {/* SIDEBAR */}
-        <aside className="add-sidebar">
-
-          <button onClick={() => navigate("/business-dashboard")}>Dashboard</button>
-          <button onClick={() => navigate("/business-profile")}>My Profile</button>
-          <button className="active">Products</button>
-          <button>Orders</button>
-          <button>Analytics</button>
-          <button>Settings</button>
-
-        </aside>
+        {/* SIDEBAR (XML-BASED) */}
+        <Sidebar userType="business" />
 
 
         {/* MAIN */}

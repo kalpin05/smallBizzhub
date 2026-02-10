@@ -1,4 +1,5 @@
 import "../styles/businessAnalytics.css";
+import Sidebar from "../components/Sidebar";
 
 function BusinessAnalytics() {
 
@@ -61,19 +62,8 @@ function BusinessAnalytics() {
       <div className="analytics-layout">
 
 
-        {/* SIDEBAR */}
-        <aside className="analytics-sidebar">
-
-          <button>Dashboard</button>
-          <button>Profile</button>
-          <button>Products</button>
-          <button>Orders</button>
-
-          <button className="active">Analytics</button>
-
-          <button>Settings</button>
-
-        </aside>
+        {/* SIDEBAR (XML-BASED) */}
+        <Sidebar userType="business" />
 
 
         {/* MAIN */}

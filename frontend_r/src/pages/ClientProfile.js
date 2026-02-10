@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "../styles/clientprofile.css";
+import Sidebar from "../components/Sidebar";
 
 function ClientProfile() {
 
@@ -23,7 +24,10 @@ function ClientProfile() {
   }
 
   return (
-    <div className="client-profile-container">
+    <div className="client-profile-container" style={{ display: 'flex' }}>
+
+      {/* SIDEBAR (XML-BASED) */}
+      <Sidebar userType="client" />
 
       {/* NAVBAR */}
       <header className="client-profile-navbar">
