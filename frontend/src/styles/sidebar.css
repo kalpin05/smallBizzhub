@@ -1,0 +1,142 @@
+/* Reusable Sidebar Styles */
+
+.sidebar {
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  position: relative;
+  min-height: 100vh;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar.collapsed {
+  width: 70px !important;
+}
+
+/* Profile Section */
+.sidebar-profile {
+  text-align: center;
+  padding: 0 20px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 20px;
+}
+
+.sidebar-profile img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+  border: 3px solid #6366f1;
+}
+
+.sidebar-profile p {
+  color: #9ca3af;
+  font-size: 14px;
+  margin: 0;
+}
+
+.sidebar-profile h3 {
+  color: #fff;
+  font-size: 18px;
+  margin: 5px 0 0;
+}
+
+/* Navigation */
+.sidebar nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0 10px;
+}
+
+/* Sidebar Item */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 15px;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 15px;
+}
+
+.sidebar-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: #fff;
+}
+
+.sidebar-item.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.sidebar-item .icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-item .icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-item .label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsed State */
+.sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  padding: 12px;
+}
+
+.sidebar.collapsed .sidebar-item .label {
+  display: none;
+}
+
+/* Resizer */
+.sidebar-resizer {
+  width: 90%;
+  margin: 20px auto 10px;
+  cursor: ew-resize;
+}
+
+/* Collapse Button */
+.collapse-btn {
+  position: absolute;
+  bottom: 20px;
+  right: -15px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #6366f1;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.collapse-btn:hover {
+  background: #8b5cf6;
+  transform: scale(1.1);
+}
+
+.collapse-btn svg {
+  width: 18px;
+  height: 18px;
+}

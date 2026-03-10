@@ -1,0 +1,245 @@
+/* ================= GLOBAL ================= */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ================= LAYOUT ================= */
+
+.client-container {
+  display: flex;
+  min-height: 100vh;
+  background: radial-gradient(circle at center, #1c1d3f, #050510);
+  color: white;
+}
+
+/* ================= SIDEBAR ================= */
+
+.client-sidebar {
+  width: 260px;
+  padding: 2rem 1.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* BRAND */
+.brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+/* PROFILE */
+.profile-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.profile-box img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.profile-box h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.profile-box p {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* NAV */
+.client-sidebar nav {
+  flex: 1;
+}
+
+.client-sidebar nav a {
+  display: block;
+  padding: 0.6rem 0.8rem;
+  margin: 0.3rem 0;
+  border-radius: 8px;
+  opacity: 0.75;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.client-sidebar nav a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 1;
+}
+
+.client-sidebar nav a.active {
+  background: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
+  opacity: 1;
+  font-weight: 600;
+}
+
+/* BROWSE BOX */
+.browse-box {
+  margin-top: 2rem;
+  opacity: 0.85;
+}
+
+.browse-box button {
+  margin-top: 0.6rem;
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 10px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.browse-box button:hover {
+  background: #1e40af;
+}
+
+/* ================= MAIN ================= */
+
+.client-main {
+  flex: 1;
+  padding: 2.5rem;
+}
+
+/* ================= HEADER ================= */
+
+.client-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.3rem;
+}
+
+.client-header p {
+  opacity: 0.8;
+  margin-bottom: 1.5rem;
+}
+
+/* SEARCH */
+.search-bar {
+  display: flex;
+  gap: 1rem;
+  max-width: 600px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.search-bar button {
+  padding: 0.8rem 1.3rem;
+  border-radius: 12px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.search-bar button:hover {
+  background: #1e40af;
+}
+
+/* ================= BUSINESS SECTION ================= */
+
+.section-title {
+  margin: 2.5rem 0 1rem;
+  font-size: 1.2rem;
+}
+
+/* GRID */
+.business-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+/* CARD */
+.business-card {
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  transition: transform 0.25s ease;
+}
+
+.business-card:hover {
+  transform: translateY(-4px);
+}
+
+.business-card img {
+  width: 100%;
+  border-radius: 14px;
+  margin-bottom: 0.8rem;
+}
+
+.business-card h3 {
+  margin: 0.3rem 0;
+}
+
+.business-card p {
+  opacity: 0.8;
+  font-size: 0.9rem;
+  margin: 0.2rem 0;
+}
+
+.business-card span {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* CARD BUTTON */
+.business-card button {
+  margin-top: 0.8rem;
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 12px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.business-card button:hover {
+  background: #1e40af;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 900px) {
+  .client-sidebar {
+    display: none;
+  }
+
+  .client-main {
+    padding: 1.5rem;
+  }
+
+  .search-bar {
+    flex-direction: column;
+  }
+}
