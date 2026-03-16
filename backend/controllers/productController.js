@@ -1,17 +1,33 @@
 import supabase from "../config/supabase.js";
 import { sendNewProductEmail } from "../utils/emailService.js";
+import { logStockChange } from "./stockController.js";
 
+/* ─── HELPER: get business row from user_id ──────────────── */
+async function getBusiness(userId) {
+  const { data, error } = await supabase
+    .from("businesses")
+    .select("id, business_name")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return { data, error };
+}
+
+
+/* ─── ADD PRODUCT ──────────────────────────────────────────── */
 export const addProduct = async (req, res) => {
   try {
-    const { name, price, stock, description, image } = req.body;
-    const business_id = req.user.id;
+    const { name, price, stock, description, image_url, category_id } = req.body;
 
-    // 1. Insert Product
+    /* 1. Get business id for this logged-in user */
+    const { data: business, error: bizError } = await getBusiness(req.user.id);
+    if (bizError || !business) {
+      return res.status(403).json({ error: "No business profile found for this user." });
+    }
+
+    /* 2. Insert Product into products1 */
     const { data: product, error } = await supabase
-      .from("products")
-      .insert([
-        { name, price, stock, description, image, business_id }
-      ])
+      .from("products1")
+      .insert([{ name, price, stock, description, image_url: image_url || null, business_id: business.id, category_id: category_id || null }])
       .select()
       .single();
 
@@ -20,24 +36,20 @@ export const addProduct = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // 2. Fetch Business Details (for the email)
-    const { data: business } = await supabase
-      .from("users")
-      .select("name, business_name")
-      .eq("id", business_id)
-      .single();
+    /* 3. Log stock history */
+    if (product && product.stock > 0) {
+      logStockChange(product.id, parseInt(product.stock), "Initial stock on product creation").catch(() => {});
+    }
 
-    // 3. Fetch All Clients
+    /* 4. Fetch All Clients for email notification */
     const { data: clients } = await supabase
-      .from("users")
+      .from("users1")
       .select("email, name")
       .eq("role", "client");
 
-    // 4. Send Email Notification (Non-blocking)
-    if (clients && clients.length > 0 && business) {
-      // Use business_name if available, else fallback to name
-      const businessObj = { ...business, name: business.business_name || business.name };
-      sendNewProductEmail(clients, product, businessObj).catch(err =>
+    if (clients && clients.length > 0) {
+      const businessObj = { name: business.business_name };
+      sendNewProductEmail(clients, product, businessObj).catch((err) =>
         console.error("Failed to send product emails:", err)
       );
     }
@@ -49,55 +61,56 @@ export const addProduct = async (req, res) => {
   }
 };
 
+
+/* ─── GET ALL PRODUCTS (with business info) ─────────────── */
 export const getProducts = async (req, res) => {
   try {
-    // First try to get products without join
-    const { data: products, error: productsError } = await supabase
-      .from("products")
-      .select("*");
+    const { data: products, error } = await supabase
+      .from("products1")
+      .select("*, businesses(id, business_name, location, user_id, users1(name, email))");
 
-    if (productsError) {
-      console.error("Supabase error fetching products:", productsError);
-      return res.status(400).json({ error: productsError.message });
+    if (error) {
+      console.error("Supabase error fetching products:", error);
+      return res.status(400).json({ error: error.message });
     }
 
-    // If no products or no user table, return products without business info
     if (!products || products.length === 0) {
       return res.json([]);
     }
 
-    // Try to get business info separately
-    const businessIds = [...new Set(products.map(p => p.business_id))];
-    const { data: businesses, error: businessError } = await supabase
-      .from("users")
-      .select("id, name, email")
-      .in("id", businessIds);
-
-    if (businessError) {
-      console.error("Error fetching business info:", businessError);
-      // Return products without business info
-      return res.json(products);
-    }
-
-    // Combine products with business info
-    const productsWithBusiness = products.map(product => ({
-      ...product,
-      business: businesses.find(b => b.id === product.business_id) || { name: "Unknown Business", email: "" }
+    /* Flatten for frontend compatibility */
+    const result = products.map((p) => ({
+      ...p,
+      business: p.businesses
+        ? {
+            id: p.businesses.id,
+            name: p.businesses.users1?.name || "Unknown",
+            email: p.businesses.users1?.email || "",
+            business_name: p.businesses.business_name,
+          }
+        : { name: "Unknown Business", email: "" },
     }));
 
-    res.json(productsWithBusiness);
+    res.json(result);
   } catch (error) {
     console.error("Server error fetching products:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+
+/* ─── GET PRODUCTS FOR LOGGED-IN BUSINESS ──────────────── */
 export const getBusinessProducts = async (req, res) => {
   try {
+    const { data: business, error: bizError } = await getBusiness(req.user.id);
+    if (bizError || !business) {
+      return res.status(403).json({ error: "No business profile found." });
+    }
+
     const { data, error } = await supabase
-      .from("products")
+      .from("products1")
       .select("*")
-      .eq("business_id", req.user.id);
+      .eq("business_id", business.id);
 
     if (error) {
       console.error("Supabase error fetching business products:", error);
@@ -111,12 +124,15 @@ export const getBusinessProducts = async (req, res) => {
   }
 };
 
-/* Public: get products for a specific business (for client discover view) */
+
+/* ─── GET PRODUCTS FOR A SPECIFIC BUSINESS (Client Discover) */
 export const getProductsByBusiness = async (req, res) => {
   try {
+    /* businessId here is the businesses.id (PK of businesses table) */
     const { businessId } = req.params;
+
     const { data, error } = await supabase
-      .from("products")
+      .from("products1")
       .select("*")
       .eq("business_id", businessId)
       .order("created_at", { ascending: false });
@@ -133,16 +149,23 @@ export const getProductsByBusiness = async (req, res) => {
   }
 };
 
+
+/* ─── UPDATE PRODUCT ─────────────────────────────────────── */
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, stock, description, image } = req.body;
+    const { name, price, stock, description, image_url, category_id } = req.body;
+
+    const { data: business, error: bizError } = await getBusiness(req.user.id);
+    if (bizError || !business) {
+      return res.status(403).json({ error: "No business profile found." });
+    }
 
     const { data, error } = await supabase
-      .from("products")
-      .update({ name, price, stock, description, image, updated_at: new Date() })
+      .from("products1")
+      .update({ name, price, stock, description, image_url, category_id: category_id || null })
       .eq("id", id)
-      .eq("business_id", req.user.id)
+      .eq("business_id", business.id)
       .select()
       .single();
 
@@ -152,21 +175,35 @@ export const updateProduct = async (req, res) => {
     }
 
     res.json({ message: "Product updated successfully", product: data });
+
+    /* Log stock change if stock was updated */
+    if (stock !== undefined && data) {
+      const oldStock = data.stock; // after update this is new value
+      // We don't have old stock easily, so log the absolute set
+      logStockChange(data.id, parseInt(stock), `Stock updated to ${stock} via product edit`).catch(() => {});
+    }
   } catch (error) {
     console.error("Server error updating product:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+
+/* ─── DELETE PRODUCT ─────────────────────────────────────── */
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const { data: business, error: bizError } = await getBusiness(req.user.id);
+    if (bizError || !business) {
+      return res.status(403).json({ error: "No business profile found." });
+    }
+
     const { error } = await supabase
-      .from("products")
+      .from("products1")
       .delete()
       .eq("id", id)
-      .eq("business_id", req.user.id);
+      .eq("business_id", business.id);
 
     if (error) {
       console.error("Supabase error deleting product:", error);

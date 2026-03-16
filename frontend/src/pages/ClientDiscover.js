@@ -8,7 +8,10 @@ import {
   addToCart,
   getCart,
   removeFromCart,
-  createOrder
+  createOrder,
+  getProductReviews,
+  getProductRating,
+  addReview
 } from "../services/api";
 
 function ClientDiscover() {
@@ -26,6 +29,14 @@ function ClientDiscover() {
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
+
+  // Review state
+  const [reviewModal, setReviewModal] = useState(null); // product being reviewed
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [productRatings, setProductRatings] = useState({}); // productId -> { average, count }
+  const [productReviews, setProductReviews] = useState([]); // reviews for modal
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const userName = (() => {
     try { return JSON.parse(localStorage.getItem("user"))?.name?.split(" ")[0] || "Client"; }
@@ -76,6 +87,52 @@ function ClientDiscover() {
   const handleBack = () => {
     setSelectedBusiness(null);
     setProducts([]);
+    setProductRatings({});
+  };
+
+  // Fetch ratings for all products when products load
+  useEffect(() => {
+    if (products.length > 0) {
+      products.forEach(async (p) => {
+        try {
+          const res = await getProductRating(p.id);
+          setProductRatings(prev => ({ ...prev, [p.id]: res.data }));
+        } catch (e) { /* ignore */ }
+      });
+    }
+  }, [products]);
+
+  const handleOpenReview = async (product) => {
+    setReviewModal(product);
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewsLoading(true);
+    try {
+      const res = await getProductReviews(product.id);
+      setProductReviews(res.data || []);
+    } catch (e) {
+      setProductReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewModal) return;
+    try {
+      await addReview({ product_id: reviewModal.id, rating: reviewRating, comment: reviewComment });
+      alert("Review submitted!");
+      // Refresh rating
+      const res = await getProductRating(reviewModal.id);
+      setProductRatings(prev => ({ ...prev, [reviewModal.id]: res.data }));
+      setReviewModal(null);
+    } catch (err) {
+      alert("Failed to submit review: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const renderStars = (rating) => {
+    return '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
   };
 
   const handleAddToCart = async (product) => {
@@ -83,8 +140,9 @@ function ClientDiscover() {
 
     // Check if cart has items from another business
     if (cart.length > 0) {
-      const cartBusinessId = cart[0].business_id;
-      if (cartBusinessId !== selectedBusiness.id) {
+      // business info is nested in cart item as item.business.id
+      const cartBusinessId = cart[0].business?.id;
+      if (cartBusinessId && cartBusinessId !== selectedBusiness.id) {
         if (!window.confirm("Your cart contains items from another business. Clearing the cart to add this item?")) {
           return;
         }
@@ -123,10 +181,10 @@ function ClientDiscover() {
     if (cart.length === 0) return;
 
     const total = cart.reduce((sum, item) => sum + (item.product?.price * item.quantity), 0);
-    const business_id = cart[0].business_id;
+    // business_id from nested business object (new schema)
+    const business_id = cart[0].business?.id;
 
-    // Construct items array for the order
-    // The order table expects 'items' jsonb. Let's store a snapshot.
+    // Build order items array for the new order_items table
     const orderItems = cart.map(item => ({
       product_id: item.product_id,
       name: item.product?.name,
@@ -328,7 +386,7 @@ function ClientDiscover() {
                   <div className="business-card" key={product.id || index} style={{ position: "relative" }}>
                     {/* Product Image */}
                     <img
-                      src={product.image || `https://picsum.photos/300/180?random=${index}`}
+                      src={product.image_url || `https://picsum.photos/300/180?random=${index}`}
                       alt={product.name}
                       style={{ width: "100%", height: "160px", objectFit: "cover", borderRadius: "8px 8px 0 0" }}
                       onError={(e) => { e.target.src = `https://picsum.photos/300/180?random=${index}`; }}
@@ -370,6 +428,25 @@ function ClientDiscover() {
                         }}
                       >
                         {cartLoading ? '...' : (product.stock > 0 ? 'Add' : 'No Stock')}
+                      </button>
+                    </div>
+
+                    {/* Rating + Review Button */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 12px 12px' }}>
+                      <span style={{ color: '#f59e0b', fontSize: '14px' }}>
+                        {productRatings[product.id]
+                          ? `${renderStars(productRatings[product.id].average)} (${productRatings[product.id].count})`
+                          : '☆☆☆☆☆ (0)'}
+                      </span>
+                      <button
+                        onClick={() => handleOpenReview(product)}
+                        style={{
+                          background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#b0b0cc', padding: '4px 10px', borderRadius: '6px',
+                          cursor: 'pointer', fontSize: '12px'
+                        }}
+                      >
+                        Reviews
                       </button>
                     </div>
                   </div>
@@ -423,6 +500,90 @@ function ClientDiscover() {
           </section>
         )}
       </main>
+
+      {/* ── REVIEW MODAL ── */}
+      {reviewModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.7)', zIndex: 2000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }} onClick={() => setReviewModal(null)}>
+          <div style={{
+            background: '#1a1a2e', width: '500px', maxHeight: '80vh', overflowY: 'auto',
+            borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.1)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0 }}>Reviews — {reviewModal.name}</h2>
+              <button onClick={() => setReviewModal(null)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>×</button>
+            </div>
+
+            {/* Existing Reviews */}
+            <div style={{ marginBottom: '20px' }}>
+              {reviewsLoading ? (
+                <p style={{ color: '#b0b0cc' }}>Loading reviews...</p>
+              ) : productReviews.length === 0 ? (
+                <p style={{ color: '#b0b0cc', fontSize: '14px' }}>No reviews yet. Be the first!</p>
+              ) : (
+                productReviews.map((r, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '10px',
+                    marginBottom: '8px', border: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <strong style={{ fontSize: '14px' }}>{r.client_name}</strong>
+                      <span style={{ color: '#f59e0b', fontSize: '14px' }}>{renderStars(r.rating)}</span>
+                    </div>
+                    {r.comment && <p style={{ margin: 0, color: '#b0b0cc', fontSize: '13px' }}>{r.comment}</p>}
+                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
+                      {new Date(r.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Write Review */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+              <h4 style={{ marginBottom: '12px' }}>Write a Review</h4>
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <span
+                    key={star}
+                    onClick={() => setReviewRating(star)}
+                    style={{
+                      fontSize: '28px', cursor: 'pointer',
+                      color: star <= reviewRating ? '#f59e0b' : 'rgba(255,255,255,0.2)',
+                      transition: 'color 0.2s'
+                    }}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+              <textarea
+                value={reviewComment}
+                onChange={e => setReviewComment(e.target.value)}
+                placeholder="Write your review (optional)..."
+                style={{
+                  width: '100%', padding: '10px', minHeight: '80px',
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '8px', color: 'white', fontSize: '14px', resize: 'vertical'
+                }}
+              />
+              <button
+                onClick={handleSubmitReview}
+                style={{
+                  marginTop: '12px', width: '100%', padding: '10px',
+                  background: '#3b82f6', color: 'white', border: 'none',
+                  borderRadius: '8px', cursor: 'pointer', fontWeight: '600'
+                }}
+              >
+                Submit Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

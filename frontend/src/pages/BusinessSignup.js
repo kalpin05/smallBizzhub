@@ -30,6 +30,7 @@ function BusinessSignup() {
         name: businessName,
         email: email,
         password: password,
+        phone: phone,
         role: "business"
       });
 

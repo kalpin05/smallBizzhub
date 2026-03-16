@@ -30,6 +30,7 @@ function ClientSignup() {
         name: name,
         email: email,
         password: password,
+        phone: phone,
         role: "client"
       });
 

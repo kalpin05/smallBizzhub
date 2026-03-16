@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/businessAddProduct.css";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { addProduct, logout } from "../services/api";
+import { addProduct, getCategories, logout } from "../services/api";
 
 function BusinessAddProduct() {
   const navigate = useNavigate();
@@ -12,9 +12,24 @@ function BusinessAddProduct() {
     description: "",
     price: "",
     stock: "",
-    image: ""
+    image_url: "",
+    category_id: ""
   });
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await getCategories();
+      setCategories(res.data || []);
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    }
+  };
 
   function handleChange(e) {
     setProduct({
@@ -33,7 +48,10 @@ function BusinessAddProduct() {
 
     setLoading(true);
     try {
-      await addProduct(product);
+      await addProduct({
+        ...product,
+        category_id: product.category_id || null
+      });
       alert("Product Added Successfully!");
       navigate("/business-products");
     } catch (error) {
@@ -66,13 +84,13 @@ function BusinessAddProduct() {
               <label className="upload-box">
                 <input
                   type="text"
-                  name="image"
+                  name="image_url"
                   placeholder="Image URL"
-                  value={product.image}
+                  value={product.image_url}
                   onChange={handleChange}
                   style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: 'white' }}
                 />
-                {!product.image && (
+                {!product.image_url && (
                   <>
                     <span className="cloud">☁</span>
                     <p>Enter Image URL</p>
@@ -91,6 +109,29 @@ function BusinessAddProduct() {
               <div className="form-group">
                 <label>Description</label>
                 <textarea name="description" value={product.description} onChange={handleChange} />
+              </div>
+
+              <div className="form-group">
+                <label>Category</label>
+                <select
+                  name="category_id"
+                  value={product.category_id}
+                  onChange={handleChange}
+                  style={{
+                    width: '100%', padding: '10px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '8px', color: 'white',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">-- Select Category --</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id} style={{ background: '#1a1a2e' }}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="price-stock">

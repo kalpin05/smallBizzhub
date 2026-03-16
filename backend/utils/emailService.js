@@ -138,3 +138,47 @@ export const sendNewBusinessEmail = async (clients, business) => {
         console.error("Error sending new business email:", error);
     }
 };
+
+
+/**
+ * Send an SMS message using Twilio
+ * Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER in .env
+ * @param {string} to - Recipient phone number (e.g., +911234567890)
+ * @param {string} message - SMS body text
+ */
+export const sendSMS = async (to, message) => {
+    try {
+        const accountSid = process.env.TWILIO_ACCOUNT_SID;
+        const authToken = process.env.TWILIO_AUTH_TOKEN;
+        const fromPhone = process.env.TWILIO_PHONE_NUMBER;
+
+        if (!accountSid || !authToken || !fromPhone) {
+            console.warn("⚠️ SMS not configured: Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER in .env");
+            return null;
+        }
+
+        // Dynamically import twilio to avoid crash if not installed
+        const twilio = (await import("twilio")).default;
+        const client = twilio(accountSid, authToken);
+
+        // Ensure phone number has country code
+        let formattedPhone = to.trim();
+        if (!formattedPhone.startsWith("+")) {
+            formattedPhone = "+91" + formattedPhone; // Default to India (+91)
+        }
+
+        const result = await client.messages.create({
+            body: message,
+            from: fromPhone,
+            to: formattedPhone,
+        });
+
+        console.log(`SMS sent to ${formattedPhone}: SID ${result.sid}`);
+        return result;
+    } catch (error) {
+        console.error("Error sending SMS:", error.message);
+        // Don't throw — SMS failure should not break the main flow
+        return null;
+    }
+};
+

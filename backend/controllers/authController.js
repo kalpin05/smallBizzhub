@@ -1,12 +1,79 @@
 import supabase from "../config/supabase.js";
 import jwt from "jsonwebtoken";
-import { sendNewBusinessEmail } from "../utils/emailService.js";
+import { sendNewBusinessEmail, sendEmail } from "../utils/emailService.js";
+
+/* ─── HELPER: Create a notification for a user ──────────────── */
+async function createNotification(userId, message) {
+  try {
+    /* 1. Always create in-app notification */
+    await supabase
+      .from("notifications")
+      .insert([{ user_id: userId, message, is_read: false }]);
+
+    /* 2. Check user's notification prefs and contact info */
+    const { data: user } = await supabase
+      .from("users1")
+      .select("email, name, phone, notification_prefs")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!user) return;
+
+    const prefs = user.notification_prefs || { email: true, sms: false };
+
+    /* 3. Send email notification if enabled */
+    if (prefs.email && user.email) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h3 style="color: #2c3e50;">SmallBizzHub Notification</h3>
+          <p>Hello ${user.name || "User"},</p>
+          <p>${message}</p>
+          <p style="font-size: 12px; color: #777; margin-top: 20px;">You can manage notification preferences in your settings.</p>
+        </div>
+      `;
+      sendEmail(user.email, "Notification - SmallBizzHub", html).catch(() => {});
+    }
+
+    /* 4. Send SMS notification if enabled and phone exists */
+    if (prefs.sms && user.phone) {
+      try {
+        const { sendSMS } = await import("../utils/emailService.js");
+        await sendSMS(user.phone, `SmallBizzHub: ${message}`);
+      } catch (smsErr) {
+        console.error("SMS notification failed (non-blocking):", smsErr.message);
+      }
+    }
+  } catch (err) {
+    console.error("Notification insert error:", err.message);
+  }
+}
+
+
+/* ─── HELPER: get client row from user_id ─────────────────── */
+async function getClientByUserId(userId) {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return { data, error };
+}
+
+/* ─── HELPER: get business row from user_id ──────────────── */
+async function getBusinessByUserId(userId) {
+  const { data, error } = await supabase
+    .from("businesses")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return { data, error };
+}
 
 
 /* ─── SIGNUP ─────────────────────────────────────────────── */
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, phone } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json("All fields required");
@@ -16,7 +83,7 @@ export const signup = async (req, res) => {
 
     /* 1. Check if profile already exists */
     const { data: existingProfile } = await supabase
-      .from("users")
+      .from("users1")
       .select("id")
       .eq("email", normalizedEmail)
       .maybeSingle();
@@ -31,19 +98,14 @@ export const signup = async (req, res) => {
       password,
       options: {
         data: { name, role },
-        emailRedirectTo: undefined  // Don't send confirmation email
-      }
+        emailRedirectTo: undefined,
+      },
     });
 
     if (authError) {
       console.error("Auth Signup Error:", authError.message, "Status:", authError.status);
-
-      // SMTP not configured — Supabase can't send confirmation email
       if (authError.status === 500 || authError.message.toLowerCase().includes("sending confirmation email") || authError.message.toLowerCase().includes("smtp")) {
-        return res.status(503).json(
-          "Supabase cannot send confirmation emails because SMTP is not configured. " +
-          "Please go to: Supabase Dashboard → Authentication → Providers → Email → turn OFF 'Confirm email', then try again."
-        );
+        return res.status(503).json("Supabase cannot send confirmation emails. Please disable 'Confirm email' in Supabase Auth settings.");
       }
       if (authError.status === 429 || authError.message.includes("rate limit")) {
         return res.status(429).json("Too many signups. Please wait a few minutes and try again.");
@@ -55,16 +117,14 @@ export const signup = async (req, res) => {
     }
 
     if (!authData?.user) {
-      return res.status(400).json(
-        "Signup failed - no user returned. " +
-        "ACTION REQUIRED: Go to Supabase Dashboard → Authentication → Providers → Email → turn OFF 'Confirm email'."
-      );
+      return res.status(400).json("Signup failed - no user returned. Please disable 'Confirm email' in Supabase Auth settings.");
     }
 
-    /* 3. Insert profile into public.users (only columns that exist) */
+    /* 3. Insert into users1 table */
     const { data: userData, error: dbError } = await supabase
-      .from("users")
-      .insert([{ id: authData.user.id, name, email: normalizedEmail, role }])
+      .from("users1")
+      .insert([{ id: authData.user.id, name, email: normalizedEmail, password: "managed_by_supabase_auth", role, phone: phone || null }])
+      // phone is stored in users1.phone
       .select()
       .single();
 
@@ -73,31 +133,45 @@ export const signup = async (req, res) => {
       return res.status(500).json("Profile setup failed: " + dbError.message);
     }
 
-    /* 4. If a business just registered, notify all existing clients */
-    if (role === "business") {
-      notifyClientsOfNewBusiness(userData).catch(err =>
+    /* 4. Create client or business profile row */
+    if (role === "client") {
+      const { error: clientError } = await supabase
+        .from("clients")
+        .insert([{ user_id: userData.id }]);
+      if (clientError) {
+        console.error("Client profile creation error:", clientError.message);
+      }
+      /* Welcome notification for new client */
+      createNotification(userData.id, `Welcome to SmallBizzHub, ${name}! Start discovering local businesses.`);
+    } else if (role === "business") {
+      const { error: bizError } = await supabase
+        .from("businesses")
+        .insert([{ user_id: userData.id, business_name: name }]);
+      if (bizError) {
+        console.error("Business profile creation error:", bizError.message);
+      }
+      /* Welcome notification for new business */
+      createNotification(userData.id, `Welcome, ${name}! Your business account is ready. Add products to get started.`);
+
+      /* Notify existing clients */
+      notifyClientsOfNewBusiness(userData).catch((err) =>
         console.error("Client notification failed (non-blocking):", err.message)
       );
     }
 
-    res.json({
-      message: "Signup successful!",
-      user: userData
-    });
-
+    res.json({ message: "Signup successful!", user: userData });
   } catch (err) {
     console.error("Signup Crash:", err.message);
     res.status(500).json({ error: "Signup failed", details: err.message });
   }
 };
 
-/* ─── HELPER: Notify clients of new business ─────────────── */
+
 /* ─── HELPER: Notify clients of new business ─────────────── */
 async function notifyClientsOfNewBusiness(newBusiness) {
   try {
-    /* Fetch all client emails */
     const { data: clients, error } = await supabase
-      .from("users")
+      .from("users1")
       .select("email, name")
       .eq("role", "client");
 
@@ -107,10 +181,7 @@ async function notifyClientsOfNewBusiness(newBusiness) {
     }
 
     console.log(`Notifying ${clients.length} client(s) about new business: ${newBusiness.name}`);
-
-    // Send email using our new service
     await sendNewBusinessEmail(clients, newBusiness);
-
   } catch (err) {
     console.error("notifyClientsOfNewBusiness error:", err.message);
   }
@@ -130,10 +201,7 @@ export const login = async (req, res) => {
     console.log("Login attempt for:", email);
 
     /* 1. Sign in with Supabase Auth */
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
       console.log("Auth Error:", authError.message);
@@ -146,9 +214,9 @@ export const login = async (req, res) => {
 
     console.log("Auth OK for UID:", authData.user.id);
 
-    /* 2. Fetch profile from public.users */
+    /* 2. Fetch profile from users1 */
     const { data: userProfile, error: profileError } = await supabase
-      .from("users")
+      .from("users1")
       .select("*")
       .eq("id", authData.user.id)
       .maybeSingle();
@@ -159,19 +227,27 @@ export const login = async (req, res) => {
     }
 
     if (!userProfile) {
-      console.log("No profile found for UID:", authData.user.id);
       return res.status(404).json("Profile not found. Please sign up again.");
     }
 
-    /* 3. Issue JWT */
+    /* 3. Attach client or business profile info */
+    let profileExtra = {};
+    if (userProfile.role === "client") {
+      const { data: clientData } = await getClientByUserId(userProfile.id);
+      profileExtra = clientData || {};
+    } else if (userProfile.role === "business") {
+      const { data: bizData } = await getBusinessByUserId(userProfile.id);
+      profileExtra = bizData || {};
+    }
+
+    /* 4. Issue JWT */
     const token = jwt.sign(
       { id: userProfile.id, role: userProfile.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user: userProfile });
-
+    res.json({ token, user: { ...userProfile, ...profileExtra } });
   } catch (err) {
     console.error("Login Crash:", err.message);
     res.status(500).json({ error: "Login failed", details: err.message });
@@ -183,13 +259,26 @@ export const login = async (req, res) => {
 export const getProfile = async (req, res) => {
   try {
     const { data: user, error } = await supabase
-      .from("users")
-      .select("id, name, email, role, location, business_name, category, created_at")
+      .from("users1")
+      .select("id, name, email, phone, role, created_at")
       .eq("id", req.user.id)
       .single();
 
     if (error) throw error;
-    res.json(user);
+
+    let profileExtra = {};
+    if (user.role === "client") {
+      const { data: clientData } = await getClientByUserId(user.id);
+      if (clientData) {
+        // Map clients.address -> location for frontend compatibility
+        profileExtra = { ...clientData, location: clientData.address };
+      }
+    } else if (user.role === "business") {
+      const { data: bizData } = await getBusinessByUserId(user.id);
+      profileExtra = bizData || {};
+    }
+
+    res.json({ ...user, ...profileExtra });
   } catch (err) {
     console.error("Get Profile Error:", err.message);
     res.status(500).json({ error: "Failed to get profile", details: err.message });
@@ -200,17 +289,44 @@ export const getProfile = async (req, res) => {
 /* ─── UPDATE PROFILE ─────────────────────────────────────── */
 export const updateProfile = async (req, res) => {
   try {
-    const { name, location, business_name, category } = req.body;
+    const { name, phone, address, location, business_name, category } = req.body;
 
-    const { data, error } = await supabase
-      .from("users")
-      .update({ name, location, business_name, category })
+    /* Always update name/phone in users1 */
+    const { data: updatedUser, error: userError } = await supabase
+      .from("users1")
+      .update({ name, phone })
       .eq("id", req.user.id)
       .select()
       .single();
 
-    if (error) throw error;
-    res.json({ message: "Profile updated successfully", user: data });
+    if (userError) throw userError;
+
+    let profileExtra = {};
+
+    if (req.user.role === "client") {
+      // Frontend sends 'location' — stored as clients.address
+      const clientAddress = address || location || null;
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .update({ address: clientAddress })
+        .eq("user_id", req.user.id)
+        .select()
+        .single();
+      if (clientError) throw clientError;
+      // Return 'location' back so frontend state stays consistent
+      profileExtra = { ...clientData, location: clientData?.address };
+    } else if (req.user.role === "business") {
+      const { data: bizData, error: bizError } = await supabase
+        .from("businesses")
+        .update({ business_name, category, location })
+        .eq("user_id", req.user.id)
+        .select()
+        .single();
+      if (bizError) throw bizError;
+      profileExtra = bizData || {};
+    }
+
+    res.json({ message: "Profile updated successfully", user: { ...updatedUser, ...profileExtra } });
   } catch (err) {
     console.error("Update Profile Error:", err.message);
     res.status(500).json({ error: "Failed to update profile", details: err.message });
@@ -218,10 +334,10 @@ export const updateProfile = async (req, res) => {
 };
 
 
-/* ─── FORGOT PASSWORD (Supabase sends the email) ─────────── */
-/* ─── FORGOT PASSWORD (Custom Email Service) ─────────── */
-import { sendEmail } from "../utils/emailService.js";
+/* ─── OTP Store (in-memory, keyed by email) ──────────────── */
+const otpStore = new Map(); // email -> { otp, expiresAt, userId }
 
+/* ─── FORGOT PASSWORD (sends OTP via email) ──────────────── */
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -232,90 +348,136 @@ export const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 1. Check if user exists
     const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id, name")
+      .from("users1")
+      .select("id, name, phone")
       .eq("email", normalizedEmail)
       .single();
 
     if (userError || !user) {
-      // For security, strictly don't reveal if email exists or not, but for dev debugging we log it
       console.log("Forgot password: Email not found:", normalizedEmail);
-      return res.json({ message: "If this email is registered, you will receive a password reset link." });
+      // Return generic message so attacker can't enumerate emails
+      return res.json({ message: "If this email is registered, you will receive an OTP." });
     }
 
-    // 2. Generate Password Reset Link using Supabase Admin API
-    // This creates a valid action link without sending the email from Supabase
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: "recovery",
-      email: normalizedEmail,
-      options: {
-        redirectTo: `${req.headers.origin || "http://localhost:3000"}/forgot-password`
-      }
-    });
+    /* Generate 6-digit OTP */
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    if (linkError) {
-      console.error("Error generating reset link:", linkError.message);
-      return res.status(500).json("Failed to generate reset link");
-    }
+    otpStore.set(normalizedEmail, { otp, expiresAt, userId: user.id });
 
-    // 3. Send Email using our NodeMailer service
-    const resetLink = linkData.properties.action_link;
-    const subject = "Reset Your Password - WAD Shop";
+    /* Send OTP via email */
+    const subject = "Your Password Reset OTP - SmallBizzHub";
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-        <h2 style="color: #2c3e50;">Password Reset Request</h2>
+        <h2 style="color: #2c3e50;">Password Reset OTP</h2>
         <p>Hello ${user.name || "User"},</p>
-        <p>We received a request to reset your password. Click the button below to proceed:</p>
-        <a href="${resetLink}" style="background-color: #e74c3c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0;">Reset Password</a>
+        <p>We received a request to reset your password. Use the OTP below to proceed:</p>
+        <div style="background: #f4f4f4; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #e74c3c;">${otp}</span>
+        </div>
+        <p>This OTP is valid for <strong>10 minutes</strong>.</p>
         <p>If you didn't request this, you can safely ignore this email.</p>
-        <p style="font-size: 12px; color: #777;">This link will expire soon.</p>
+        <p style="font-size: 12px; color: #777;">Do not share this code with anyone.</p>
       </div>
     `;
 
     await sendEmail(normalizedEmail, subject, html);
-    console.log(`Password reset email sent to ${normalizedEmail}`);
 
-    res.json({ message: "Password reset link sent to your email" });
+    /* Also send OTP via SMS if user has phone number */
+    if (user.phone) {
+      try {
+        const { sendSMS } = await import("../utils/emailService.js");
+        await sendSMS(user.phone, `SmallBizzHub: Your password reset OTP is ${otp}. Valid for 10 minutes. Do not share this code.`);
+      } catch (smsErr) {
+        console.error("SMS send failed (non-blocking):", smsErr.message);
+      }
+    }
 
+    console.log(`OTP sent to ${normalizedEmail}`);
+
+    res.json({ message: "OTP has been sent to your email" + (user.phone ? " and phone" : "") });
   } catch (err) {
     console.error("Forgot password crash:", err.message);
-    res.status(500).json({ error: "Failed to send reset link", details: err.message });
+    res.status(500).json({ error: "Failed to send OTP", details: err.message });
   }
 };
 
 
-/* ─── RESET PASSWORD ─────────────────────────────────────── */
+/* ─── VERIFY OTP ─────────────────────────────────────────── */
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json("Email and OTP are required");
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const stored = otpStore.get(normalizedEmail);
+
+    if (!stored) {
+      return res.status(400).json("No OTP found for this email. Please request a new one.");
+    }
+
+    if (Date.now() > stored.expiresAt) {
+      otpStore.delete(normalizedEmail);
+      return res.status(400).json("OTP has expired. Please request a new one.");
+    }
+
+    if (stored.otp !== otp.trim()) {
+      return res.status(400).json("Invalid OTP. Please try again.");
+    }
+
+    /* OTP is valid — mark as verified (keep in store for resetPassword step) */
+    stored.verified = true;
+    otpStore.set(normalizedEmail, stored);
+
+    res.json({ message: "OTP verified successfully. You can now set a new password.", verified: true });
+  } catch (err) {
+    console.error("Verify OTP crash:", err.message);
+    res.status(500).json({ error: "OTP verification failed", details: err.message });
+  }
+};
+
+
+/* ─── RESET PASSWORD (after OTP verification) ────────────── */
 export const resetPassword = async (req, res) => {
   try {
-    const { newPassword, accessToken, refreshToken } = req.body;
+    const { email, newPassword } = req.body;
 
-    if (!newPassword) {
-      return res.status(400).json("New password is required");
+    if (!email || !newPassword) {
+      return res.status(400).json("Email and new password are required");
     }
 
-    if (accessToken) {
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken || ""
-      });
-
-      if (sessionError) {
-        console.error("Set Session Error:", sessionError.message);
-        return res.status(401).json("Invalid or expired session. Please request a new reset link.");
-      }
+    if (newPassword.length < 6) {
+      return res.status(400).json("Password must be at least 6 characters");
     }
 
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    const normalizedEmail = email.trim().toLowerCase();
+    const stored = otpStore.get(normalizedEmail);
+
+    if (!stored || !stored.verified) {
+      return res.status(400).json("OTP not verified. Please verify OTP first.");
+    }
+
+    /* Update password via Supabase Admin API */
+    const { error } = await supabase.auth.admin.updateUserById(stored.userId, {
+      password: newPassword,
+    });
 
     if (error) {
       console.error("Reset password error:", error.message);
       return res.status(500).json(error.message);
     }
 
-    res.json({ message: "Password updated successfully. You can now log in.", user: data.user });
+    /* Clean up OTP */
+    otpStore.delete(normalizedEmail);
 
+    /* Notify user */
+    createNotification(stored.userId, "Your password was reset successfully. If this wasn't you, contact support immediately.");
+
+    res.json({ message: "Password updated successfully. You can now log in." });
   } catch (err) {
     console.error("Reset password crash:", err.message);
     res.status(500).json({ error: "Password reset failed", details: err.message });
@@ -326,15 +488,199 @@ export const resetPassword = async (req, res) => {
 /* ─── GET BUSINESSES ─────────────────────────────────────── */
 export const getBusinesses = async (req, res) => {
   try {
+    /* Join users1 with businesses to get full business info */
     const { data, error } = await supabase
-      .from("users")
-      .select("id, name, email, business_name, category, location")
-      .eq("role", "business");
+      .from("businesses")
+      .select("id, business_name, category, location, user_id, users1(id, name, email)");
 
     if (error) throw error;
-    res.json(data);
+
+    /* Flatten the response */
+    const result = data.map((b) => ({
+      id: b.id,
+      user_id: b.user_id,
+      business_name: b.business_name,
+      category: b.category,
+      location: b.location,
+      name: b.users1?.name,
+      email: b.users1?.email,
+    }));
+
+    res.json(result);
   } catch (err) {
     console.error("Get Businesses Error:", err.message);
     res.status(500).json({ error: "Failed to get businesses", details: err.message });
+  }
+};
+
+
+/* ═════════════════════════════════════════════════════════════
+   CHANGE PASSWORD (Authenticated user)
+   PUT /api/auth/change-password
+   ─────────────────────────────────────────────────────────── */
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters." });
+    }
+
+    /* 1. Get user's email to verify current password */
+    const { data: userRow } = await supabase
+      .from("users1")
+      .select("email")
+      .eq("id", req.user.id)
+      .single();
+
+    if (!userRow?.email) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    /* 2. Verify current password by re-authenticating */
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: userRow.email,
+      password: currentPassword,
+    });
+
+    if (verifyError) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+
+    /* 3. Update password in Supabase Auth */
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    /* 4. Security notification */
+    createNotification(req.user.id, "Your password was changed successfully. If this wasn't you, contact support immediately.");
+
+    res.json({ message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("Change password crash:", err.message);
+    res.status(500).json({ error: "Password change failed.", details: err.message });
+  }
+};
+
+
+/* ═════════════════════════════════════════════════════════════
+   TOGGLE 2-FACTOR AUTHENTICATION
+   PUT /api/auth/toggle-2fa
+   Body: { enabled: true | false }
+   REQUIRES in Supabase SQL Editor:
+     ALTER TABLE users1 ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE;
+   ─────────────────────────────────────────────────────────── */
+export const toggle2FA = async (req, res) => {
+  try {
+    const { enabled } = req.body;
+
+    const { error } = await supabase
+      .from("users1")
+      .update({ two_factor_enabled: !!enabled })
+      .eq("id", req.user.id);
+
+    if (error) {
+      if (error.message?.includes("two_factor_enabled") || error.code === "PGRST204" || error.code === "42703") {
+        return res.status(400).json({
+          error: "Column 'two_factor_enabled' is missing from users1 table. Please run this SQL in Supabase:\nALTER TABLE users1 ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE;"
+        });
+      }
+      throw error;
+    }
+
+    /* Notify the user */
+    const msg = enabled
+      ? "Two-Factor Authentication has been ENABLED. A code will be sent to your email on every login."
+      : "Two-Factor Authentication has been DISABLED on your account.";
+    createNotification(req.user.id, msg);
+
+    /* Confirmation email when enabling */
+    if (enabled) {
+      const { data: userRow } = await supabase
+        .from("users1")
+        .select("email, name")
+        .eq("id", req.user.id)
+        .single();
+
+      if (userRow?.email) {
+        const html = `
+          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h2>Two-Factor Authentication Enabled</h2>
+            <p>Hello ${userRow.name || "User"},</p>
+            <p>2FA has been enabled on your SmallBizzHub account. A verification code will be emailed on every login.</p>
+            <p style="color:#c0392b;">If you did not enable this, contact support immediately.</p>
+          </div>
+        `;
+        await sendEmail(userRow.email, "2FA Enabled - SmallBizzHub", html).catch(() => {});
+      }
+    }
+
+    res.json({ message: `2FA ${enabled ? "enabled" : "disabled"} successfully.`, two_factor_enabled: !!enabled });
+  } catch (err) {
+    console.error("Toggle 2FA crash:", err.message);
+    res.status(500).json({ error: "Failed to toggle 2FA.", details: err.message });
+  }
+};
+
+
+/* ═════════════════════════════════════════════════════════════
+   SAVE / GET NOTIFICATION PREFERENCES
+   PUT /api/auth/notification-preferences
+   GET /api/auth/notification-preferences
+   REQUIRES in Supabase SQL Editor:
+     ALTER TABLE users1 ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{"email":true,"sms":false,"marketing":true}';
+   ─────────────────────────────────────────────────────────── */
+export const saveNotificationPreferences = async (req, res) => {
+  try {
+    const { email, sms, marketing } = req.body;
+    const prefs = { email: !!email, sms: !!sms, marketing: !!marketing };
+
+    const { error } = await supabase
+      .from("users1")
+      .update({ notification_prefs: prefs })
+      .eq("id", req.user.id);
+
+    if (error) {
+      if (error.message?.includes("notification_prefs") || error.code === "PGRST204" || error.code === "42703") {
+        return res.status(400).json({
+          error: "Column 'notification_prefs' is missing from users1 table. Please run this SQL in Supabase:\nALTER TABLE users1 ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{\"email\":true,\"sms\":false,\"marketing\":true}';"
+        });
+      }
+      throw error;
+    }
+
+    createNotification(req.user.id, "Your notification preferences have been updated.");
+    res.json({ message: "Notification preferences saved!", prefs });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save preferences.", details: err.message });
+  }
+};
+
+export const getNotificationPreferences = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("users1")
+      .select("notification_prefs, two_factor_enabled")
+      .eq("id", req.user.id)
+      .single();
+
+    // If columns don't exist yet, return safe defaults instead of crashing
+    if (error && (error.code === "42703" || error.message?.includes("notification_prefs") || error.message?.includes("two_factor_enabled"))) {
+      return res.json({
+        prefs: { email: true, sms: false, marketing: true },
+        two_factor_enabled: false,
+        _warning: "Run ALTER TABLE to add two_factor_enabled and notification_prefs columns."
+      });
+    }
+
+    if (error) throw error;
+
+    res.json({
+      prefs: data?.notification_prefs || { email: true, sms: false, marketing: true },
+      two_factor_enabled: data?.two_factor_enabled || false,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch preferences.", details: err.message });
   }
 };

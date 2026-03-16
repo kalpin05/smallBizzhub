@@ -1,0 +1,315 @@
+-- Enable UUID generation
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+---------------------------------------------------
+-- USERS
+---------------------------------------------------
+
+CREATE TABLE users1 (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    phone TEXT,
+
+    role TEXT CHECK (
+        role IN ('client','business','admin')
+    ) NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- CLIENT PROFILE
+---------------------------------------------------
+
+CREATE TABLE clients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    user_id UUID UNIQUE REFERENCES users1(id)
+        ON DELETE CASCADE,
+
+    address TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- BUSINESS PROFILE
+---------------------------------------------------
+
+CREATE TABLE businesses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    user_id UUID UNIQUE REFERENCES users1(id)
+        ON DELETE CASCADE,
+
+    business_name TEXT NOT NULL,
+    category TEXT,
+    location TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- PRODUCT CATEGORIES
+---------------------------------------------------
+
+CREATE TABLE categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    name TEXT UNIQUE NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- PRODUCTS
+---------------------------------------------------
+
+CREATE TABLE products1 (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    business_id UUID REFERENCES businesses(id)
+        ON DELETE CASCADE,
+
+    category_id UUID REFERENCES categories(id),
+
+    name TEXT NOT NULL,
+    description TEXT,
+
+    image_url TEXT,
+
+    price NUMERIC NOT NULL,
+    stock INTEGER NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- CART
+---------------------------------------------------
+
+CREATE TABLE cart_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    client_id UUID REFERENCES clients(id)
+        ON DELETE CASCADE,
+
+    product_id UUID REFERENCES products1(id)
+        ON DELETE CASCADE,
+
+    quantity INTEGER DEFAULT 1,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT unique_cart_product
+    UNIQUE (client_id, product_id)
+);
+
+
+---------------------------------------------------
+-- ORDERS
+---------------------------------------------------
+
+CREATE TABLE orders1 (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    client_id UUID REFERENCES clients(id),
+    business_id UUID REFERENCES businesses(id),
+
+    total_amount NUMERIC NOT NULL,
+
+    status TEXT CHECK (
+        status IN ('pending','processing','shipped','completed','cancelled')
+    ) DEFAULT 'pending',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- ORDER ITEMS
+---------------------------------------------------
+
+CREATE TABLE order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    order_id UUID REFERENCES orders1(id)
+        ON DELETE CASCADE,
+
+    product_id UUID REFERENCES products1(id),
+
+    quantity INTEGER NOT NULL,
+    price NUMERIC NOT NULL
+);
+
+
+---------------------------------------------------
+-- PAYMENTS
+---------------------------------------------------
+
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    order_id UUID REFERENCES orders1(id),
+
+    payment_method TEXT,
+    payment_status TEXT CHECK (
+        payment_status IN ('pending','completed','failed')
+    ),
+
+    transaction_id TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- PRODUCT REVIEWS
+---------------------------------------------------
+
+CREATE TABLE reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    product_id UUID REFERENCES products1(id)
+        ON DELETE CASCADE,
+
+    client_id UUID REFERENCES clients(id)
+        ON DELETE CASCADE,
+
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- NOTIFICATIONS
+---------------------------------------------------
+
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    user_id UUID REFERENCES users1(id),
+
+    message TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- STOCK HISTORY
+---------------------------------------------------
+
+CREATE TABLE stock_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    product_id UUID REFERENCES products1(id),
+
+    change_amount INTEGER,
+    reason TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- BUSINESS ANALYTICS
+---------------------------------------------------
+
+CREATE TABLE business_analytics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    business_id UUID REFERENCES businesses(id)
+        ON DELETE CASCADE,
+
+    product_id UUID REFERENCES products1(id),
+
+    total_sales INTEGER DEFAULT 0,
+    total_revenue NUMERIC DEFAULT 0,
+
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---------------------------------------------------
+-- INDEXES (PERFORMANCE)
+---------------------------------------------------
+
+CREATE INDEX idx_products_business
+ON products1(business_id);
+
+CREATE INDEX idx_products_category
+ON products1(category_id);
+
+CREATE INDEX idx_orders_client
+ON orders1(client_id);
+
+CREATE INDEX idx_orders_business
+ON orders1(business_id);
+
+CREATE INDEX idx_cart_client
+ON cart_items(client_id);
+
+CREATE INDEX idx_order_items_order
+ON order_items(order_id);
+
+CREATE INDEX idx_reviews_product
+ON reviews(product_id);
+
+CREATE INDEX idx_notifications_user
+ON notifications(user_id);
+
+
+---------------------------------------------------
+-- ANALYTICS TRIGGER FUNCTION
+---------------------------------------------------
+
+CREATE OR REPLACE FUNCTION update_business_analytics()
+RETURNS TRIGGER AS
+$$
+BEGIN
+
+    INSERT INTO business_analytics (
+        business_id,
+        product_id,
+        total_sales,
+        total_revenue
+    )
+    VALUES (
+        (SELECT business_id FROM products1 WHERE id = NEW.product_id),
+        NEW.product_id,
+        NEW.quantity,
+        NEW.quantity * NEW.price
+    )
+
+    ON CONFLICT (product_id)
+    DO UPDATE SET
+        total_sales = business_analytics.total_sales + NEW.quantity,
+        total_revenue = business_analytics.total_revenue + (NEW.quantity * NEW.price),
+        last_updated = CURRENT_TIMESTAMP;
+
+    RETURN NEW;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+---------------------------------------------------
+-- TRIGGER
+---------------------------------------------------
+
+CREATE TRIGGER analytics_update_trigger
+AFTER INSERT ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION update_business_analytics();

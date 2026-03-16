@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "../styles/dashboard.css";
 import "../styles/BusinessProducts.css";
 import Sidebar from "../components/Sidebar";
-import { getBusinessProducts, addProduct, updateProduct, deleteProduct, logout } from "../services/api";
+import { getBusinessProducts, addProduct, updateProduct, deleteProduct, getProductStockHistory, logout } from "../services/api";
 
 function BusinessProducts() {
     const [products, setProducts] = useState([]);
@@ -15,6 +15,11 @@ function BusinessProducts() {
         stock: "",
         image: ""
     });
+
+    // Stock history modal
+    const [stockHistoryModal, setStockHistoryModal] = useState(null);
+    const [stockHistory, setStockHistory] = useState([]);
+    const [stockLoading, setStockLoading] = useState(false);
 
     useEffect(() => {
         fetchProducts();
@@ -92,6 +97,20 @@ function BusinessProducts() {
 
     const handleLogout = () => {
         logout();
+    };
+
+    const handleViewStockHistory = async (product) => {
+        setStockHistoryModal(product);
+        setStockLoading(true);
+        try {
+            const res = await getProductStockHistory(product.id);
+            setStockHistory(res.data || []);
+        } catch (err) {
+            console.error("Error loading stock history:", err);
+            setStockHistory([]);
+        } finally {
+            setStockLoading(false);
+        }
     };
 
     const getStockStatus = (stock) => {
@@ -186,6 +205,7 @@ function BusinessProducts() {
                                                     <td className="actions">
                                                         <button onClick={() => handleEdit(product)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>✏️</button>
                                                         <button onClick={() => handleDelete(product.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>🗑️</button>
+                                                        <button onClick={() => handleViewStockHistory(product)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }} title="Stock History">📊</button>
                                                     </td>
                                                 </tr>
                                             );
@@ -197,6 +217,54 @@ function BusinessProducts() {
                     </div>
                 </div>
             </main>
+
+            {/* Stock History Modal */}
+            {stockHistoryModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(0,0,0,0.7)', zIndex: 1000,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                }} onClick={() => setStockHistoryModal(null)}>
+                    <div style={{
+                        background: '#1a1a2e', width: '500px', maxHeight: '80vh', overflowY: 'auto',
+                        borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.1)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h2 style={{ margin: 0 }}>Stock History — {stockHistoryModal.name}</h2>
+                            <button onClick={() => setStockHistoryModal(null)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>×</button>
+                        </div>
+
+                        {stockLoading ? (
+                            <p style={{ color: '#b0b0cc' }}>Loading...</p>
+                        ) : stockHistory.length === 0 ? (
+                            <p style={{ color: '#b0b0cc', fontSize: '14px' }}>No stock changes recorded yet.</p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {stockHistory.map((entry, i) => (
+                                    <div key={i} style={{
+                                        background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '10px',
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        border: '1px solid rgba(255,255,255,0.05)'
+                                    }}>
+                                        <div>
+                                            <p style={{ margin: 0, fontSize: '14px' }}>{entry.reason}</p>
+                                            <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                                                {new Date(entry.created_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <span style={{
+                                            fontWeight: 'bold', fontSize: '16px',
+                                            color: entry.change_amount > 0 ? '#10b981' : '#ef4444'
+                                        }}>
+                                            {entry.change_amount > 0 ? '+' : ''}{entry.change_amount}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

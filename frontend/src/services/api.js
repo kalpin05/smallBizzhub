@@ -64,8 +64,40 @@ export const forgotPassword = (data) => {
   return API.post("/auth/forgot-password", data);
 };
 
+export const verifyOtp = (data) => {
+  return API.post("/auth/verify-otp", data);
+};
+
 export const resetPassword = (data) => {
   return API.post("/auth/reset-password", data);
+};
+
+export const changePassword = (data) => {
+  return API.put("/auth/change-password", data);
+};
+
+export const toggle2FA = (enabled) => {
+  return API.put("/auth/toggle-2fa", { enabled });
+};
+
+export const getNotificationPreferences = () => {
+  return API.get("/auth/notification-preferences");
+};
+
+export const saveNotificationPreferences = (prefs) => {
+  return API.put("/auth/notification-preferences", prefs);
+};
+
+export const getNotifications = () => {
+  return API.get("/notifications");
+};
+
+export const markNotificationRead = (id) => {
+  return API.put(`/notifications/${id}/read`);
+};
+
+export const markAllNotificationsRead = () => {
+  return API.put("/notifications/read-all");
 };
 
 
@@ -152,4 +184,50 @@ export const clearCart = () => {
 };
 
 
+/* CATEGORIES */
+
+export const getCategories = () => {
+  return API.get("/categories");
+};
+
+export const addCategory = (data) => {
+  return API.post("/categories", data);
+};
+
+export const deleteCategory = (id) => {
+  return API.delete(`/categories/${id}`);
+};
+
+
+/* REVIEWS */
+
+export const getProductReviews = (productId) => {
+  return API.get(`/reviews/product/${productId}`);
+};
+
+export const getProductRating = (productId) => {
+  return API.get(`/reviews/product/${productId}/rating`);
+};
+
+export const addReview = (data) => {
+  return API.post("/reviews", data);
+};
+
+export const deleteReview = (id) => {
+  return API.delete(`/reviews/${id}`);
+};
+
+
+/* STOCK HISTORY */
+
+export const getProductStockHistory = (productId) => {
+  return API.get(`/stock-history/product/${productId}`);
+};
+
+export const getBusinessStockHistory = () => {
+  return API.get("/stock-history/business");
+};
+
+
 export default API;
+
