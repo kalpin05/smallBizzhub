@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { logout } from "../services/api";
+import { useTheme } from "../context/ThemeContext";
 
 function Header() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
+  const { isDark, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -49,6 +51,16 @@ function Header() {
           </>
         )}
       </nav>
+
+      {/* Theme Toggle Button */}
+      <button
+        className="theme-toggle"
+        onClick={toggleTheme}
+        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        aria-label="Toggle theme"
+      >
+        <i className={isDark ? "fas fa-sun" : "fas fa-moon"}></i>
+      </button>
     </header>
   );
 }

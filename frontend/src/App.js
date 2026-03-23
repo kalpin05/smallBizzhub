@@ -1,5 +1,6 @@
 import "./App.css";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -25,10 +26,20 @@ import BusinessOrders from "./pages/BusinessOrders";
 import BusinessSettings from "./pages/BusinessSettings";
 import ClientOrders from "./pages/ClientOrders";
 
-function App() {
+// Admin
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+
+/* Admin routes shown without Header/Footer */
+const ADMIN_PATHS = ["/admin", "/admin-login"];
+
+function AppContent() {
+  const location = useLocation();
+  const isAdmin = ADMIN_PATHS.some(p => location.pathname.startsWith(p));
+
   return (
     <>
-      <Header />
+      {!isAdmin && <Header />}
 
       <Routes>
         {/* Public */}
@@ -39,6 +50,10 @@ function App() {
         <Route path="/business-signup" element={<BusinessSignup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ForgotPassword />} />
+
+        {/* Admin */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin" element={<AdminDashboard />} />
 
         {/* Client Protected */}
         <Route path="/client-discover" element={
@@ -95,8 +110,16 @@ function App() {
         } />
       </Routes>
 
-      <Footer />
+      {!isAdmin && <Footer />}
     </>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

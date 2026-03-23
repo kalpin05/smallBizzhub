@@ -229,5 +229,15 @@ export const getBusinessStockHistory = () => {
 };
 
 
+/* ADMIN */
+
+export const adminGetStats    = () => API.get("/admin/stats");
+export const adminGetUsers    = () => API.get("/admin/users");
+export const adminGetProducts = () => API.get("/admin/products");
+export const adminGetOrders   = () => API.get("/admin/orders");
+export const adminDeleteUser    = (id) => API.delete(`/admin/users/${id}`);
+export const adminDeleteProduct = (id) => API.delete(`/admin/products/${id}`);
+
+
 export default API;
 
