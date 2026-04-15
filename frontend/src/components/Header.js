@@ -1,11 +1,23 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import { getSafeStorage } from "../utils/storage";
+
+/* Pages that have their own sidebar — don't show Dashboard/Logout in the header */
+const DASHBOARD_PATHS = [
+  "/client-discover", "/client-profile", "/client-orders",
+  "/business-dashboard", "/business-profile", "/business-products",
+  "/business-orders", "/business-analytics", "/business-settings",
+  "/business-add-product"
+];
 
 function Header() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+  const location = useLocation();
+  const user = getSafeStorage("user", null);
   const { isDark, toggleTheme } = useTheme();
+
+  const isDashboardPage = DASHBOARD_PATHS.some(p => location.pathname.startsWith(p));
 
   const handleLogout = () => {
     logout();
@@ -36,6 +48,9 @@ function Header() {
               For Businesses
             </span>
           </>
+        ) : isDashboardPage ? (
+          /* On dashboard pages, the sidebar already has navigation — keep header minimal */
+          null
         ) : (
           <>
             <span className="nav-item"
@@ -43,7 +58,7 @@ function Header() {
               Dashboard
             </span>
             <span className="nav-item" style={{ fontWeight: "bold", color: "#6366f1" }}>
-              Hi, {user.name.split(' ')[0]}
+              Hi, {user.name?.split(' ')[0] || 'User'}
             </span>
             <span className="nav-item" onClick={handleLogout}>
               Logout

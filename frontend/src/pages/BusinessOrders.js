@@ -4,6 +4,7 @@ import "../styles/dashboard.css";
 import Sidebar from "../components/Sidebar";
 import { Search, Eye, MoreVertical } from "lucide-react";
 import { getBusinessOrders, updateOrderStatus, logout } from "../services/api";
+import { toast } from "react-toastify";
 
 function BusinessOrders() {
   const [activeTab, setActiveTab] = useState("all");
@@ -29,11 +30,11 @@ function BusinessOrders() {
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       await updateOrderStatus(orderId, newStatus);
-      alert(`Order status updated to ${newStatus}`);
+      toast.success(`Order status updated to ${newStatus}`);
       fetchOrders();
     } catch (error) {
       console.error("Error updating order status:", error);
-      alert("Failed to update order status");
+      toast.error("Failed to update order status");
     }
   };
 

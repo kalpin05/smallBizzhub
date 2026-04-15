@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { signup } from "../services/api";
+import { toast } from "react-toastify";
 
 function ClientSignup() {
   const navigate = useNavigate();
@@ -14,12 +15,12 @@ function ClientSignup() {
 
   async function handleSignup() {
     if (!name || !email || !password) {
-      alert("Name, email and password are required");
+      toast.warning("Name, email and password are required");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      toast.warning("Passwords do not match");
       return;
     }
 
@@ -34,10 +35,10 @@ function ClientSignup() {
         role: "client"
       });
 
-      alert("Client registered successfully");
+      toast.success("Client registered successfully");
       navigate("/client-login");
     } catch (error) {
-      alert("Registration failed: " + (error.response?.data || error.message));
+      toast.error("Registration failed: " + (error.uiMessage || error.message));
     } finally {
       setLoading(false);
     }

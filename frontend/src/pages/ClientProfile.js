@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "../styles/clientprofile.css";
 import Sidebar from "../components/Sidebar";
 import { getProfile, updateProfile, logout } from "../services/api";
+import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
 function ClientProfile() {
@@ -30,7 +31,7 @@ function ClientProfile() {
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
-      alert("Failed to load profile");
+      toast.error("Failed to load profile");
     } finally {
       setLoading(false);
     }
@@ -48,10 +49,10 @@ function ClientProfile() {
     setSaving(true);
     try {
       await updateProfile(formData);
-      alert("Profile Updated Successfully!");
+      toast.success("Profile Updated Successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Failed to update profile: " + (error.response?.data?.error || error.message));
+      toast.error("Failed to update profile: " + (error.uiMessage || error.message));
     } finally {
       setSaving(false);
     }

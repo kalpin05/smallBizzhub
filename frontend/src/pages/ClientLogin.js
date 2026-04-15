@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { login } from "../services/api";
+import { toast } from "react-toastify";
 
 function ClientLogin() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ function ClientLogin() {
 
   async function handleLogin() {
     if (!email || !password) {
-      alert("Please enter email and password");
+      toast.warning("Please enter email and password");
       return;
     }
 
@@ -22,10 +23,10 @@ function ClientLogin() {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      alert("Login successful");
+      toast.success("Login successful");
       navigate("/client-discover");
     } catch (error) {
-      alert("Login failed: " + (error.response?.data || error.message));
+      toast.error("Login failed: " + (error.uiMessage || error.message));
     } finally {
       setLoading(false);
     }

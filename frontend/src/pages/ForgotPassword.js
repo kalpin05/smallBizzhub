@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { forgotPassword, verifyOtp, resetPassword } from "../services/api";
+import { toast } from "react-toastify";
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ function ForgotPassword() {
   /* ── Step 1: Send OTP to email ── */
   const handleSendOtp = async () => {
     if (!email) {
-      alert("Please enter your email");
+      toast.warning("Please enter your email");
       return;
     }
 
@@ -27,7 +28,7 @@ function ForgotPassword() {
       setMessage(response.data.message);
       setStep(2);
     } catch (error) {
-      alert("Failed to send OTP: " + (error.response?.data || error.message));
+      toast.error("Failed to send OTP: " + (error.uiMessage || error.response?.data || error.message));
     } finally {
       setLoading(false);
     }
@@ -36,7 +37,7 @@ function ForgotPassword() {
   /* ── Step 2: Verify OTP ── */
   const handleVerifyOtp = async () => {
     if (!otp || otp.length !== 6) {
-      alert("Please enter the 6-digit OTP");
+      toast.warning("Please enter the 6-digit OTP");
       return;
     }
 
@@ -46,7 +47,7 @@ function ForgotPassword() {
       setMessage(response.data.message);
       setStep(3);
     } catch (error) {
-      alert(error.response?.data || "Invalid OTP. Please try again.");
+      toast.error(error.uiMessage || error.response?.data || "Invalid OTP. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -55,27 +56,27 @@ function ForgotPassword() {
   /* ── Step 3: Set New Password ── */
   const handleResetPassword = async () => {
     if (!newPassword || !confirmPassword) {
-      alert("Please fill in all fields");
+      toast.warning("Please fill in all fields");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      alert("Passwords do not match");
+      toast.warning("Passwords do not match");
       return;
     }
 
     if (newPassword.length < 6) {
-      alert("Password must be at least 6 characters long");
+      toast.warning("Password must be at least 6 characters long");
       return;
     }
 
     setLoading(true);
     try {
       const response = await resetPassword({ email, newPassword });
-      alert(response.data.message);
+      toast.success(response.data.message || "Password reset successful");
       navigate("/business-login");
     } catch (error) {
-      alert("Failed to reset password: " + (error.response?.data || error.message));
+      toast.error("Failed to reset password: " + (error.uiMessage || error.response?.data || error.message));
     } finally {
       setLoading(false);
     }

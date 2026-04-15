@@ -3,6 +3,7 @@ import "../styles/dashboard.css";
 import "../styles/BusinessProducts.css";
 import Sidebar from "../components/Sidebar";
 import { getBusinessProducts, addProduct, updateProduct, deleteProduct, getProductStockHistory, logout } from "../services/api";
+import { toast } from "react-toastify";
 
 function BusinessProducts() {
     const [products, setProducts] = useState([]);
@@ -45,24 +46,24 @@ function BusinessProducts() {
 
     const handleSaveProduct = async () => {
         if (!formData.name || !formData.price || !formData.stock) {
-            alert("Please fill all required fields");
+            toast.warning("Please fill all required fields");
             return;
         }
 
         try {
             if (editingProduct) {
                 await updateProduct(editingProduct.id, formData);
-                alert("Product updated successfully!");
+                toast.success("Product updated successfully!");
             } else {
                 await addProduct(formData);
-                alert("Product added successfully!");
+                toast.success("Product added successfully!");
             }
             setFormData({ name: "", description: "", price: "", stock: "", image: "" });
             setEditingProduct(null);
             fetchProducts();
         } catch (error) {
             console.error("Error saving product:", error);
-            alert("Failed to save product: " + (error.response?.data?.error || error.message));
+            toast.error("Failed to save product: " + (error.uiMessage || error.message));
         }
     };
 
@@ -82,11 +83,11 @@ function BusinessProducts() {
 
         try {
             await deleteProduct(productId);
-            alert("Product deleted successfully!");
+            toast.success("Product deleted successfully!");
             fetchProducts();
         } catch (error) {
             console.error("Error deleting product:", error);
-            alert("Failed to delete product");
+            toast.error("Failed to delete product");
         }
     };
 

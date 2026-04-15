@@ -8,6 +8,8 @@ import {
   adminDeleteUser,
   adminDeleteProduct,
 } from "../services/api";
+import { toast } from "react-toastify";
+import { getSafeStorage } from "../utils/storage";
 import "../styles/adminDashboard.css";
 
 /* ── Simple confirm helper ── */
@@ -41,7 +43,7 @@ function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const adminUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const adminUser = getSafeStorage("user", {});
 
   /* ── Auth guard ── */
   useEffect(() => {
@@ -88,7 +90,7 @@ function AdminDashboard() {
       setUsers(prev => prev.filter(u => u.id !== id));
       adminGetStats().then(r => setStats(r.data)).catch(() => {});
     } catch (err) {
-      alert("Delete failed: " + (err.response?.data?.error || err.message));
+      toast.error("Delete failed: " + (err.uiMessage || err.message));
     }
   }
 
@@ -99,7 +101,7 @@ function AdminDashboard() {
       setProducts(prev => prev.filter(p => p.id !== id));
       adminGetStats().then(r => setStats(r.data)).catch(() => {});
     } catch (err) {
-      alert("Delete failed: " + (err.response?.data?.error || err.message));
+      toast.error("Delete failed: " + (err.uiMessage || err.message));
     }
   }
 

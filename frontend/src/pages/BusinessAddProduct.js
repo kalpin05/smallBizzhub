@@ -3,6 +3,7 @@ import "../styles/businessAddProduct.css";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { addProduct, getCategories, logout } from "../services/api";
+import { toast } from "react-toastify";
 
 function BusinessAddProduct() {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ function BusinessAddProduct() {
     e.preventDefault();
 
     if (!product.name || !product.price || !product.stock) {
-      alert("Please fill all required fields");
+      toast.warning("Please fill all required fields");
       return;
     }
 
@@ -52,11 +53,11 @@ function BusinessAddProduct() {
         ...product,
         category_id: product.category_id || null
       });
-      alert("Product Added Successfully!");
+      toast.success("Product Added Successfully!");
       navigate("/business-products");
     } catch (error) {
       console.error("Error adding product:", error);
-      alert("Failed to add product: " + (error.response?.data?.error || error.message));
+      toast.error("Failed to add product: " + (error.uiMessage || error.message));
     } finally {
       setLoading(false);
     }

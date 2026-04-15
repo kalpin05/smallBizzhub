@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { signup } from "../services/api";
+import { toast } from "react-toastify";
 
 function BusinessSignup() {
   const navigate = useNavigate();
@@ -14,12 +15,12 @@ function BusinessSignup() {
 
   async function handleSignup() {
     if (!businessName || !email || !password) {
-      alert("Business name, email and password are required");
+      toast.warning("Business name, email and password are required");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      toast.warning("Passwords do not match");
       return;
     }
 
@@ -34,10 +35,10 @@ function BusinessSignup() {
         role: "business"
       });
 
-      alert("Business registered successfully");
+      toast.success("Business registered successfully");
       navigate("/business-login");
     } catch (error) {
-      alert("Registration failed: " + (error.response?.data || error.message));
+      toast.error("Registration failed: " + (error.uiMessage || error.message));
     } finally {
       setLoading(false);
     }

@@ -2,30 +2,52 @@ import axios from "axios";
 
 /* Base Axios Instance */
 
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-
 /* Attach Token Automatically */
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (err) {
+    console.error("Local storage error:", err);
   }
   return config;
 });
 
-/* Auto-handle expired/invalid tokens */
+/* Auto-handle expired/invalid tokens and format errors */
 API.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Attempt to extract meaningful error message
+    let errorMessage = "An error occurred";
+    if (error.response?.data) {
+      if (typeof error.response.data === 'string') {
+        errorMessage = error.response.data;
+      } else if (error.response.data.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    // Attach cleaned up message for UI
+    error.uiMessage = errorMessage;
+
     if (error.response?.status === 401) {
-      const msg = error.response?.data?.error || "";
-      if (msg.includes("expired") || msg.includes("Invalid token")) {
+      const msg = errorMessage.toLowerCase();
+      if (msg.includes("expired") || msg.includes("invalid token")) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         window.location.href = "/";

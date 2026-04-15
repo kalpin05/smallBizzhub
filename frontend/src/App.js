@@ -1,6 +1,9 @@
 import "./App.css";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
+import { CartProvider } from "./context/CartContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -39,6 +42,7 @@ function AppContent() {
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={3000} theme="dark" />
       {!isAdmin && <Header />}
 
       <Routes>
@@ -53,7 +57,11 @@ function AppContent() {
 
         {/* Admin */}
         <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin" element={
+          <ProtectedRoute role="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
 
         {/* Client Protected */}
         <Route path="/client-discover" element={
@@ -118,7 +126,9 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
     </ThemeProvider>
   );
 }

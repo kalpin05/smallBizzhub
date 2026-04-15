@@ -1,18 +1,93 @@
-/* Reusable Sidebar Styles */
-
-.sidebar {
-  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
-  padding: 20px 0;
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1001; /* Above almost everything but below modals */
+  background: #3b82f6;
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   display: flex;
-  flex-direction: column;
-  transition: width 0.3s ease;
-  position: relative;
-  min-height: 100vh;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: background 0.3s, transform 0.2s;
 }
 
-.sidebar.collapsed {
-  width: 70px !important;
+.sidebar-toggle-btn:hover {
+  background: #2563eb;
+  transform: scale(1.05);
+}
+
+/* Sidebar Backdrop for Mobile */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 999; /* Just below the sidebar */
+  display: none;
+}
+
+/* Base Sidebar Styles */
+.sidebar {
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+  padding: 70px 0 20px 0; /* Extra top padding for toggle button */
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, margin-left 0.3s ease, transform 0.3s ease;
+  position: relative; /* Sit natively in the flex container */
+  height: 100vh;
+  width: 250px;
+  flex-shrink: 0; /* Don't shrink */
+  z-index: 1000;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.4);
+  overflow-x: hidden;
+}
+
+.sidebar.closed {
+  width: 0;
+  padding: 70px 0 20px 0;
+  margin-left: -250px; /* Hide completely and collapse the space */
+}
+
+.sidebar.open {
+  width: 250px;
+  margin-left: 0;
+}
+
+/* Dashboard Container updates to handle flex sidebar */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* When sidebar acts as overlay we remove padding */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed; /* Back to fixed on mobile to act as overlay */
+  }
+
+  .sidebar.closed {
+    transform: translateX(-100%);
+    margin-left: 0;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+    margin-left: 0;
+  }
+
+  .sidebar-backdrop {
+    display: block; /* Show backdrop on mobile */
+  }
 }
 
 /* Profile Section */
@@ -49,7 +124,8 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 0 10px;
+  padding: 0 15px;
+  overflow-y: auto; /* Allow scrolling if many items */
 }
 
 /* Sidebar Item */
@@ -95,48 +171,30 @@
   text-overflow: ellipsis;
 }
 
-/* Collapsed State */
-.sidebar.collapsed .sidebar-item {
-  justify-content: center;
-  padding: 12px;
+/* Footer & Logout */
+.sidebar-footer {
+  padding: 20px 15px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 10px;
 }
 
-.sidebar.collapsed .sidebar-item .label {
-  display: none;
-}
-
-/* Resizer */
-.sidebar-resizer {
-  width: 90%;
-  margin: 20px auto 10px;
-  cursor: ew-resize;
-}
-
-/* Collapse Button */
-.collapse-btn {
-  position: absolute;
-  bottom: 20px;
-  right: -15px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #6366f1;
-  border: none;
-  color: #fff;
-  cursor: pointer;
+.sidebar-logout-btn {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
+  gap: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
-.collapse-btn:hover {
-  background: #8b5cf6;
-  transform: scale(1.1);
-}
-
-.collapse-btn svg {
-  width: 18px;
-  height: 18px;
+.sidebar-logout-btn:hover {
+  background: #ef4444;
+  color: white;
 }

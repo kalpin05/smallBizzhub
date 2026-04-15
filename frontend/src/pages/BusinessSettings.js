@@ -7,6 +7,8 @@ import {
     changePassword, toggle2FA,
     getNotificationPreferences, saveNotificationPreferences
 } from "../services/api";
+import { toast } from "react-toastify";
+import { getSafeStorage } from "../utils/storage";
 
 function BusinessSettings() {
     const [notifications, setNotifications] = useState({ email: true, sms: false, marketing: true });
@@ -23,10 +25,7 @@ function BusinessSettings() {
         newPassword: ""
     });
 
-    const user = (() => {
-        try { return JSON.parse(localStorage.getItem("user")) || {}; }
-        catch { return {}; }
-    })();
+    const user = getSafeStorage("user", {});
 
     /* Load notification prefs and 2FA status on mount */
     useEffect(() => {
@@ -49,9 +48,9 @@ function BusinessSettings() {
         setNotifLoading(true);
         try {
             await saveNotificationPreferences(notifications);
-            alert("Notification preferences updated and saved!");
+            toast.success("Notification preferences updated and saved!");
         } catch (error) {
-            alert("Failed to save notification preferences: " + (error.response?.data?.error || error.message));
+            toast.error("Failed to save notification preferences: " + (error.uiMessage || error.message));
         } finally {
             setNotifLoading(false);
         }
@@ -60,20 +59,20 @@ function BusinessSettings() {
     /* ── Security: change password via backend ── */
     const handleSaveSecurity = async () => {
         if (!formData.currentPassword) {
-            alert("Please enter your current password.");
+            toast.warning("Please enter your current password.");
             return;
         }
         if (!formData.newPassword || formData.newPassword.length < 6) {
-            alert("New password must be at least 6 characters.");
+            toast.warning("New password must be at least 6 characters.");
             return;
         }
         setSaving(true);
         try {
             await changePassword({ currentPassword: formData.currentPassword, newPassword: formData.newPassword });
-            alert("Password updated successfully! A security notification has been sent.");
+            toast.success("Password updated successfully! A security notification has been sent.");
             setFormData(prev => ({ ...prev, currentPassword: "", newPassword: "" }));
         } catch (error) {
-            alert("Failed: " + (error.response?.data?.error || error.message));
+            toast.error("Failed: " + (error.uiMessage || error.message));
         } finally {
             setSaving(false);
         }
@@ -86,9 +85,9 @@ function BusinessSettings() {
         try {
             const res = await toggle2FA(newVal);
             setTwoFAEnabled(res.data.two_factor_enabled);
-            alert(res.data.message);
+            toast.success(res.data.message);
         } catch (error) {
-            alert("Failed to toggle 2FA: " + (error.response?.data?.error || error.message));
+            toast.error("Failed to toggle 2FA: " + (error.uiMessage || error.message));
         } finally {
             setTwoFALoading(false);
         }

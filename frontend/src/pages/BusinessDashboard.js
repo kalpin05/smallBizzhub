@@ -9,6 +9,7 @@ import {
 import Sidebar from "../components/Sidebar";
 import "../styles/dashboard.css";
 import { getBusinessOrders, getBusinessProducts, getAnalytics, logout } from "../services/api";
+import { getSafeStorage } from "../utils/storage";
 
 function BusinessDashboard() {
   const [stats, setStats] = useState([
@@ -97,7 +98,7 @@ function BusinessDashboard() {
 
       <main className="dashboard-main">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="dashboard-title">Welcome back, {JSON.parse(localStorage.getItem("user"))?.name || 'Business Owner'}</h1>
+          <h1 className="dashboard-title">Welcome back, {getSafeStorage("user", {name: 'Business Owner'})?.name || 'Business Owner'}</h1>
         </div>
 
         {loading ? (

@@ -1,9 +1,18 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import girl from "../assets/images/girl.jpeg";
 import boy from "../assets/images/boy.jpeg";
+import { getSafeStorage } from "../utils/storage";
 
 function Home() {
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+  const user = getSafeStorage("user", null);
+  
+  if (token && user) {
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'business') return <Navigate to="/business-dashboard" replace />;
+    return <Navigate to="/client-discover" replace />;
+  }
 
   return (
     <main className="hero">
