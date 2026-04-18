@@ -20,16 +20,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/analytics", analyticsRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/categories", categoryRoutes);
-app.use("/api/reviews", reviewRoutes);
-app.use("/api/stock-history", stockRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/auth", authRoutes);
+app.use("/products", productRoutes);
+app.use("/orders", orderRoutes);
+app.use("/analytics", analyticsRoutes);
+app.use("/cart", cartRoutes);
+app.use("/notifications", notificationRoutes);
+app.use("/categories", categoryRoutes);
+app.use("/reviews", reviewRoutes);
+app.use("/stock-history", stockRoutes);
+app.use("/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.send("SmallBizHub API Running...");
